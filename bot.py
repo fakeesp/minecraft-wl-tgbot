@@ -9,11 +9,12 @@ from db import *
 
 
 # config
-TOKEN = "5931040406:AAG-xASvTm41ZR_EeLiQ_R8ClrDZEU8a2sU"
+TOKEN = ""
 banned_ids = []
-admin_ids = [646701548]
+admin_ids = []
 serverip = ""
-rconport = 25565
+rconport = 25575
+
 rcon_password = ""
 
 
