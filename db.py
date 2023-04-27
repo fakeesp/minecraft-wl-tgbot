@@ -5,11 +5,12 @@ def adduser(id, nick):
     conn = sqlite3.connect('db.db')
     cursor = conn.cursor()
     #add user to waitlist
-    if cursor.execute("INSERT INTO users VALUES (?, ?, ?)", (id, nick, 1,)):
+    try:
+        cursor.execute("INSERT INTO users VALUES (?, ?, ?)", (id, nick, 0,))
         conn.commit()
         conn.close()
         return True
-    else:
+    except:
         conn.close()
         return False
 
@@ -18,11 +19,12 @@ def removeuser(id, nick):
     conn = sqlite3.connect('db.db')
     cursor = conn.cursor()
     #remove user from waitlist
-    if cursor.execute("INSERT INTO users VALUES (?, ?, ?)", (id, nick, 0,)):
+    try:
+        cursor.execute("INSERT INTO users VALUES (?, ?, ?)", (id, nick, 1,))
         conn.commit()
         conn.close()
         return True
-    else:
+    except:
         conn.close()
         return False
 

@@ -1,28 +1,40 @@
 import rcon
 import socket
-import json
-import os
 from aiogram import Bot, types, executor, Dispatcher
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.dispatcher import FSMContext
 from kb import createkb
-from db import adduser, removeuseradmin, removeuser, getusers, getuseridvianick
+from db import *
 
 
 # config
-TOKEN = ""
+TOKEN = "5931040406:AAG-xASvTm41ZR_EeLiQ_R8ClrDZEU8a2sU"
 banned_ids = []
-admin_ids = []
+admin_ids = [646701548]
 serverip = ""
 rconport = 25565
 rcon_password = ""
 
 
 #texts
-info = ''
-link_to_modpack = ''
+infotext = 'info'
+
+
+class adduserform(StatesGroup):
+    nick = State()
+
+
+class removeuserform(StatesGroup):
+    nick = State()
+
+
+storage = MemoryStorage()
+
 
 bot = Bot(token=TOKEN)
 bot.parse_mode = 'markdown'
-dp = Dispatcher(bot)
+dp = Dispatcher(bot, storage=storage)
 
 
 def sock_comm(comm):
@@ -44,123 +56,103 @@ async def send_admins(message):
 async def online(message: types.Message):
     if message.from_user.id not in banned_ids:
         await message.reply(sock_comm("list"))
-        await send_admins(f"#id{message.from_user.id}: \n\n```{message.text}```")
+        await send_admins(f"#id{message.from_user.id}:\n\n```{message.text}```")
     else:
-        await message.answer("ти в бані")
-        await send_admins(f"#id{message.from_user.id} спробував виконати команду /online, але він в бані.")
-
-
-@dp.message_handler(commands=['help'])
-async def help(message: types.Message):
-    await message.reply('команди бота:\n/whitelistadd --- добавить нік в вайтліст\n/whitelistremove --- прибрать нік із вайтліста\n/online --- вивести список задротів на сервері\n/info --- інфа про сервак\n/modpack --- отримати модпак')
-    await send_admins(f"#id{message.from_user.id}: \n\n```{message.text}```")
+        await message.answer("**You are banned.**")
+        await send_admins(f"#id{message.from_user.id}\n\n/online\n\nUser is banned.")
 
 
 @dp.message_handler(commands=['info', 'start'])
 async def info(message: types.Message):
-    await message.answer(info)
-    await send_admins(f"#id{message.from_user.id}: \n\n```{message.text}```")
+    await message.answer(infotext)
+    await send_admins(f"#id{message.from_user.id}:\n\n```{message.text}```")
 
 
 @dp.message_handler(commands=['whitelistadd'])
-async def whitelistadd(message: types.Message):
+async def whitelistadd1(message: types.Message):
     if message.from_user.id in banned_ids:
-        await message.answer("ти в бані")
-        await send_admins(f"#id{message.from_user.id} спробував додать нік в вайтліст, але юзер в бані.")
+        await message.answer("**You are banned.**")
+        await send_admins(f"#id{message.from_user.id}\n\n/whitelistadd\n\nUser is banned.")
     else:
-        if message.get_args() == "":
-            await message.answer("invalid command syntax, /whitelistadd your_nick")
-            await send_admins(f"#id{message.from_user.id} спробував додати нік на вайтліст, але не ввів нік.")
-        else:
-            if adduser(message.from_user.id, message.get_args()):
-                await message.answer("user added to waitlist for admin approval")
-                for admin in admin_ids:
-                    await bot.send_message(admin, f"#id{message.from_user.id} відправив {message.get_args()} на очікування одобрення.", reply_markup=createkb(f"approve_add_{message.get_args()}", f"decline_add_{message.get_args()}"))
-            else:
-                await message.answer("user already in waitlist or you are the owner of this nick")
-                await send_admins(f"#id{message.from_user.id} спробував додати нік на вайтліст, але він вже є в вейтлісті.")
+        await message.answer("Enter your nick:")
+        await adduserform.nick.set()
+        await send_admins(f"#id{message.from_user.id}:\n\n```{message.text}```")
+
+
+@dp.message_handler(state=adduserform.nick)
+async def whitelistadd2(message: types.Message, state: FSMContext):
+    if adduser(message.from_user.id, message.text):
+        await message.answer("User added to waitlist for admin approval.")
+        for admin in admin_ids:
+            await bot.send_message(admin, f"#id{message.from_user.id} want to add {message.text} to whitelist.",
+                                   reply_markup=createkb(f"approve_add_{message.text}", f"decline_add_{message.text}"))
+            await state.finish()
+    else:
+        await message.answer("User already in waitlist. Canceling.")
+        await state.finish()
 
 
 @dp.message_handler(commands=['whitelistremove'])
-async def whitelistadd(message: types.Message):
+async def whitelistremove1(message: types.Message):
     if message.from_user.id in banned_ids:
-        await message.answer("ти в бані")
-        await send_admins(f"#id{message.from_user.id} спробував видалить нік з вайтліста, але юзер в бані.")
+        await message.answer("**You are banned.**")
+        await send_admins(f"#id{message.from_user.id}\n\n/whitelistremove\n\nUser is banned.")
     else:
-        if message.get_args() == "":
-            await message.answer("invalid command syntax, /whitelistadd your_nick")
-            await send_admins(f"#id{message.from_user.id} спробував видалити нік з вайтліста , але не ввів нік.")
-        else:
-            if removeuser(message.from_user.id, message.get_args()):
-                await message.answer("user added to waitlist for admin approval")
-                for admin in admin_ids:
-                    await bot.send_message(admin, f"#id{message.from_user.id} відправив {message.get_args()} на очікування видалення.", reply_markup=createkb(f"approve_remove_{message.get_args()}", f"decline_remove_{message.get_args()}"))
-            else:
-                await message.answer("user already in waitlist or you are the owner of this nick")
-                await send_admins(f"#id{message.from_user.id} спробував видалити нік з вайтліста, але такий нік вже є в вейтлісті.")
+        await message.answer("Enter your nick:")
+        await removeuserform.nick.set()
+        await send_admins(f"#id{message.from_user.id}:\n\n```{message.text}```")
 
 
-#@dp.message_handler(commands=['modpack'])
-#async def modpack(message: types.Message):
-#    await message.answer(link_to_modpack)
-#    await send_admins(f"#id{message.from_user.id}: \n\n```{message.text}```")
+
+@dp.message_handler(state=removeuserform.nick)
+async def whitelistremove2(message: types.Message, state: FSMContext):
+    if removeuser(message.from_user.id, message.text):
+        await message.answer("User added to waitlist for admin approval.")
+        for admin in admin_ids:
+            await bot.send_message(admin, f"#id{message.from_user.id} want to remove {message.text} from whitelist.",
+                                   reply_markup=createkb(f"approve_remove_{message.text}", f"decline_remove_{message.text}"))
+            await state.finish()
+    else:
+        await message.answer("User already in waitlist. Canceling.")
+        await state.finish()
+
 
 
 # admin buttons
-@dp.callback_query_handler(lambda c: c.data.startswith('decline_add_'))
-async def approve(callback_query: types.CallbackQuery):
-    for admin in admin_ids:
-        if callback_query.from_user.id == admin:
-            await bot.answer_callback_query(callback_query.id)
-            if getuseridvianick(callback_query.data[12:]):
-                await bot.send_message(admin, f"#id{callback_query.from_user.id} відхилив {callback_query.data[12:]}")
-                await bot.send_message(getuseridvianick(callback_query.data[12:]), f"ваш запит на додавання {callback_query.data[12:]} в вайтліст було відхилено")
-                removeuseradmin(callback_query.data[12:])
-            else:
-                await bot.send_message(admin, f"#id{callback_query.from_user.id} спробував відхилити {callback_query.data[12:]}, але такого юзера нема в базі")
+@dp.callback_query_handler()
+async def callback_query_handler(callback_query: types.CallbackQuery):
+    if callback_query.data.startswith("approve_add_"):
+        nick = callback_query.data.split("_")[2]
+        sock_comm(f"whitelist add {nick}")
+        await bot.send_message(callback_query.from_user.id, f"Approved {nick}")
+        await bot.send_message(getuseridvianick(nick), f"Your request to add {nick} to whitelist was approved.")
+        await callback_query.answer("Approved")
+        removeuseradmin(nick)
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith('approve_add_'))
-async def approve(callback_query: types.CallbackQuery):
-    for admin in admin_ids:
-        if callback_query.from_user.id == admin:
-            await bot.answer_callback_query(callback_query.id)
-            if getuseridvianick(callback_query.data[12:]):
-                await bot.send_message(admin, f"#id{callback_query.from_user.id} підтвердив {callback_query.data[12:]}")
-                await bot.send_message(getuseridvianick(callback_query.data[12:]), f"ваш запит на додавання {callback_query.data[12:]} в вайтліст було підтверджено")
-                removeuseradmin(callback_query.data[12:])
-                sock_comm(f"whitelist add {callback_query.data[12:]}")
-                sock_comm(f"whitelist reload")
-            else:
-                await bot.send_message(admin, f"#id{callback_query.from_user.id} спробував підтвердити {callback_query.data[12:]}, але такого юзера нема в базі")
+    if callback_query.data.startswith("decline_add_"):
+        nick = callback_query.data.split("_")[2]
+        await bot.send_message(callback_query.from_user.id, f"Declined {nick}")
+        await bot.send_message(getuseridvianick(nick), f"Your request to add {nick} to whitelist was declined.")
+        await callback_query.answer("Declined")
+        removeuseradmin(nick)
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith('decline_remove_'))
-async def approve(callback_query: types.CallbackQuery):
-    for admin in admin_ids:
-        if callback_query.from_user.id == admin:
-            await bot.answer_callback_query(callback_query.id)
-            if getuseridvianick(callback_query.data[15:]):
-                await bot.send_message(admin, f"#id{callback_query.from_user.id} відхилив {callback_query.data[15:]}")
-                await bot.send_message(getuseridvianick(callback_query.data[15:]), f"ваш запит на видалення {callback_query.data[15:]} з вайтліста було відхилено")
-                removeuseradmin(callback_query.data[15:])
-            else:
-                await bot.send_message(admin, f"#id{callback_query.from_user.id} спробував відхилити {callback_query.data[15:]}, але такого юзера нема в базі")
+    if callback_query.data.startswith("approve_remove_"):
+        nick = callback_query.data.split("_")[2]
+        sock_comm(f"whitelist remove {nick}")
+        await bot.send_message(callback_query.from_user.id, f"Approved {nick}")
+        await bot.send_message(getuseridvianick(nick), f"Your request to remove {nick} from whitelist was approved.")
+        await callback_query.answer("Approved")
+        removeuseradmin(nick)
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith('approve_remove_'))
-async def approve(callback_query: types.CallbackQuery):
-    for admin in admin_ids:
-        if callback_query.from_user.id == admin:
-            await bot.answer_callback_query(callback_query.id)
-            if getuseridvianick(callback_query.data[15:]):
-                await bot.send_message(admin, f"#id{callback_query.from_user.id} підтвердив видалення {callback_query.data[15:]} з вайтліста")
-                await bot.send_message(getuseridvianick(callback_query.data[15:]), f"ваш запит на видалення {callback_query.data[15:]} з вайтліста було підтверджено")
-                removeuseradmin(callback_query.data[15:])
-                sock_comm(f"whitelist remove {callback_query.data[15:]}")
-                sock_comm(f"whitelist reload")
-            else:
-                await bot.send_message(admin, f"#id{callback_query.from_user.id} спробував підтвердити {callback_query.data[15:]}, але такого юзера нема в базі")
+    if callback_query.data.startswith("decline_remove_"):
+        nick = callback_query.data.split("_")[2]
+        await bot.send_message(callback_query.from_user.id, f"Declined {nick}")
+        await bot.send_message(getuseridvianick(nick), f"Your request to remove {nick} from whitelist was declined.")
+        await callback_query.answer("Declined")
+        removeuseradmin(nick)
 
 
 @dp.message_handler(commands=['getdb'])
@@ -170,6 +162,25 @@ async def getdb(message: types.Message):
             await bot.send_message(admin, str(getusers()))
         else:
             pass
+
+
+@dp.message_handler(commands=['listpendings'])
+async def listpendings(message: types.Message):
+    if message.from_user.id in admin_ids:
+        db = getusers()
+        if len(db) == 0:
+            await message.answer("No pending requests.")
+        else:
+            print(db)
+            for user in db:
+                print(user)
+                if user[2] == 0:
+                    print("0")
+                    await message.reply(f"#id{user[0]} want to add {user[1]} to whitelist.", reply_markup=createkb(f"approve_add_{user[1]}", f"decline_add_{user[1]}"))
+                elif user[2] == 1:
+                    print("1")
+                    await message.reply(f"#id{user[0]} want to remove {user[1]} from whitelist.", reply_markup=createkb(f"approve_remove_{user[1]}", f"decline_remove_{user[1]}"))
+
 
 
 if __name__ == '__main__':
