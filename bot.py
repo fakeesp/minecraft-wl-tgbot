@@ -14,12 +14,11 @@ banned_ids = []
 admin_ids = []
 serverip = ""
 rconport = 25575
-
 rcon_password = ""
 
 
 #texts
-infotext = 'info'
+infotext = ""
 
 
 class adduserform(StatesGroup):
@@ -162,7 +161,12 @@ async def getdb(message: types.Message):
         if message.from_user.id == admin:
             await bot.send_message(admin, str(getusers()))
         else:
-            pass
+            await message.answer("You are not admin.")
+
+
+@dp.message_handler(commands=['help'])
+async def help(message: types.Message):
+    await message.answer("/whitelistadd - add yourself to whitelist\n/whitelistremove - remove yourself from whitelist\n/help - this message\n/info - info about server\n/online - get online players on server")
 
 
 @dp.message_handler(commands=['listpendings'])
