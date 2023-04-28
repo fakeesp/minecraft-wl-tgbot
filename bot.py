@@ -18,6 +18,7 @@ rcon_password = ""
 
 
 #texts
+starttext = "Hi on our minecraft server!\nTo get access to the server, you need to be approved by the admin.\nRun /help to get bot commands"
 infotext = ""
 
 
@@ -62,7 +63,13 @@ async def online(message: types.Message):
         await send_admins(f"#id{message.from_user.id}\n\n/online\n\nUser is banned.")
 
 
-@dp.message_handler(commands=['info', 'start'])
+@dp.message_handler(commands=['start'])
+async def info(message: types.Message):
+    await message.answer(starttext)
+    await send_admins(f"#id{message.from_user.id}:\n\n```{message.text}```")
+
+
+@dp.message_handler(commands=['info'])
 async def info(message: types.Message):
     await message.answer(infotext)
     await send_admins(f"#id{message.from_user.id}:\n\n```{message.text}```")
@@ -176,16 +183,20 @@ async def listpendings(message: types.Message):
         if len(db) == 0:
             await message.answer("No pending requests.")
         else:
-            print(db)
             for user in db:
-                print(user)
                 if user[2] == 0:
-                    print("0")
                     await message.reply(f"#id{user[0]} want to add {user[1]} to whitelist.", reply_markup=createkb(f"approve_add_{user[1]}", f"decline_add_{user[1]}"))
                 elif user[2] == 1:
-                    print("1")
                     await message.reply(f"#id{user[0]} want to remove {user[1]} from whitelist.", reply_markup=createkb(f"approve_remove_{user[1]}", f"decline_remove_{user[1]}"))
+    else:
+        await message.answer("You are not admin.")
 
+
+@dp.message_handler()
+async def leavefromgroups(message: types.Message):
+    if message.chat.type in ["group", "supergroup", "channel"]:
+        await message.answer("I'm not allowed to be here. Leaving.")
+        await message.chat.leave()
 
 
 if __name__ == '__main__':
