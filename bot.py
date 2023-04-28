@@ -18,7 +18,7 @@ rcon_password = ""
 
 
 #texts
-starttext = "Hi on our minecraft server!\nTo get access to the server, you need to be approved by the admin.\nRun /help to get bot commands"
+starttext = "Hi on our minecraft server!\nTo get access to the server, you need to be approved by the admin.\nRun /help to get bot commands\n\nThis bot is [Open-Source.](https://github.com/5050prop/minecraft-wl-tgbot)"
 infotext = ""
 
 
