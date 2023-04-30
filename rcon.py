@@ -27,8 +27,8 @@ def decode_packet(data):
         raise IncompletePacket(length)
 
     ident, kind = struct.unpack("<ii", data[4:12])
-    payload, padding = data[12:length-2], data[length-2:length]
-    padding = b'\x00\x00'
+    payload, padding = data[12 : length - 2], data[length - 2 : length]
+    padding = b"\x00\x00"
     assert padding == b"\x00\x00"
     return Packet(ident, kind, payload), data[length:]
 
