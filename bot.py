@@ -38,10 +38,10 @@ bot.parse_mode = "markdown"
 dp = Dispatcher(bot, storage=storage)
 
 
-def sock_command(command):
+def sock_comm(command):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((serverip, rconport))
-    result = rcon.login(sock, rcon_password)
+    rcon.login(sock, rcon_password)
     output = rcon.command(sock, command)
     sock.shutdown(socket.SHUT_RDWR)
     sock.close()
@@ -149,11 +149,11 @@ async def callback_query_handler(callback_query: types.CallbackQuery):
     if callback_query.data.startswith("approve_add_"):
         nick = callback_query.data.split("_")[2]
         sock_comm(f"whitelist add {nick}")
-        await bot.send_message(callback_query.from_user.id, f"Approved {nick}")
         await bot.send_message(
             getuseridvianick(nick),
             f"Your request to add {nick} to the whitelist has been approved.",
         )
+        await bot.send_message(callback_query.from_user.id, f"Approved {nick}")
         await callback_query.answer("Approved")
         removeuseradmin(nick)
 
@@ -170,11 +170,11 @@ async def callback_query_handler(callback_query: types.CallbackQuery):
     if callback_query.data.startswith("approve_remove_"):
         nick = callback_query.data.split("_")[2]
         sock_comm(f"whitelist remove {nick}")
-        await bot.send_message(callback_query.from_user.id, f"Approved {nick}")
         await bot.send_message(
             getuseridvianick(nick),
             f"Your request to remove {nick} from the whitelist has been approved.",
         )
+        await bot.send_message(callback_query.from_user.id, f"Approved {nick}")
         await callback_query.answer("Approved")
         removeuseradmin(nick)
 
